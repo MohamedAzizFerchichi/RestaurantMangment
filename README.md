@@ -1,77 +1,147 @@
-# RestaurantManagement
+# Restaurant Management System
 
----
-
-## Overview
-
-RestaurantManagement is a Blazor WebAssembly application designed to streamline restaurant operations. It provides distinct interfaces for clients and administrators, facilitating tasks such as user authentication, menu viewing, order placement (implied), and administrative oversight.
-
----
+A full-stack web application for managing restaurant operations, built with .NET 8, Blazor WebAssembly, and PostgreSQL.
 
 ## Features
 
-*   **User Authentication:** Secure login and registration for clients and administrators.
-*   **Role-Based Access:** Separate dashboards and functionalities for different user roles (Client, Admin).
-*   **Client Dashboard:** Interface for clients (details to be added based on implementation).
-*   **Admin Dashboard:** Interface for administrators (details to be added based on implementation).
-*   **(Potential) Menu Management:** Based on `MenuItem.cs` model (details to be added).
-*   **(Potential) Order Management:** Based on `Order.cs` and `OrderItem.cs` models (details to be added).
+- **User Management**
+  - User registration and authentication
+  - Role-based access control (Admin/User)
+  - User profile management
 
----
+- **Menu Management**
+  - Add, edit, and delete menu items
+  - Categorize items (Appetizers, Main Courses, Desserts, etc.)
+  - Set prices and availability
+  - Upload and manage item images
 
-## Technologies Used
+- **Order Management**
+  - Create and track orders
+  - Manage order status
+  - View order history
+  - Process payments
 
-*   **Frontend:** Blazor WebAssembly (.NET 8)
-*   **UI Component Library:** MudBlazor
-*   **Authentication:** Custom Authentication State Provider, JWT (implied from typical Blazor auth patterns)
-*   **Data Persistence:** Entity Framework Core (implied from `Data/RestaurantDbContext.cs`)
-*   **Local Storage:** Used for client-side storage (e.g., tokens).
+- **Plate Management**
+  - Add, edit, and delete plates
+  - Categorize plates
+  - Set prices and availability
+  - Upload and manage plate images
 
----
+## Tech Stack
 
-## Project Structure Highlights
+- **Frontend**
+  - Blazor WebAssembly
+  - MudBlazor UI Components
+  - HTML5/CSS3
+  - JavaScript/TypeScript
 
-*   `Models/`: Contains the core data structures (User, MenuItem, Order, etc.).
-*   `Services/`: Houses business logic and services like Authentication and Local Storage interaction.
-*   `Pages/`: Contains the Blazor components representing different views/pages (Login, Register, Dashboards).
-*   `Layout/`: Defines the main application layout and navigation (`NavMenu.razor`).
-*   `Data/`: Contains the `DbContext` for database interactions (`RestaurantDbContext.cs`).
-*   `Program.cs`: Application entry point and service configuration.
-*   `wwwroot/`: Static assets like CSS, images, and `index.html`.
+- **Backend**
+  - .NET 8
+  - ASP.NET Core Web API
+  - Entity Framework Core
+  - PostgreSQL Database
+  - JWT Authentication
 
----
+- **Development Tools**
+  - Visual Studio 2022
+  - Visual Studio Code
+  - Git
+  - PostgreSQL
 
 ## Getting Started
 
-1.  **Prerequisites:**
-    *   .NET 8 SDK installed.
-    *   (Optional) SQL Server or other database configured if using EF Core migrations.
-2.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd RestaurantManagement
-    ```
-3.  **Install EF Core Tools (if needed):**
-    *   The Entity Framework Core tools are required for database migrations. Install them as a local tool:
-        ```bash
-        dotnet new tool-manifest # Run if .config/dotnet-tools.json doesn't exist
-        dotnet tool install dotnet-ef
-        ```
-4.  **Database Setup (if applicable):**
-    *   Update connection string in `appsettings.json` (if present) or `Program.cs`.
-    *   Create and apply database migrations (using the local tool):
-        ```bash
-        dotnet ef migrations add InitialCreate # Or your desired migration name
-        dotnet ef database update
-        ```
-5.  **Run the application:**
-    ```bash
-    dotnet run
-    ```
-    The application will be accessible at the URL provided in the console output (usually `https://localhost:xxxx` or `http://localhost:xxxx`).
+### Prerequisites
 
----
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) or [Visual Studio Code](https://code.visualstudio.com/)
+- [PostgreSQL](https://www.postgresql.org/download/)
+- [Git](https://git-scm.com/downloads)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/RestaurantManagement.git
+cd RestaurantManagement
+```
+
+2. Configure the database:
+- Create a PostgreSQL database named `restaurant`
+- Update the connection string in `appsettings.json`:
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Host=localhost;Database=restaurant;Username=your_username;Password=your_password"
+}
+```
+
+3. Apply database migrations:
+```bash
+cd RestaurantManagement.Server
+dotnet ef database update
+```
+
+4. Run the application:
+```bash
+dotnet run
+```
+
+The application will be available at:
+- Frontend: https://localhost:5001
+- Backend API: https://localhost:5239
+
+## Project Structure
+
+```
+RestaurantManagement/
+├── RestaurantManagement.Client/         # Blazor WebAssembly frontend
+├── RestaurantManagement.Server/         # ASP.NET Core Web API backend
+├── RestaurantManagement.Shared/         # Shared models and utilities
+└── README.md
+```
+
+## Development
+
+### Running the Application
+
+1. Start the backend server:
+```bash
+cd RestaurantManagement.Server
+dotnet run
+```
+
+2. Start the frontend client:
+```bash
+cd RestaurantManagement.Client
+dotnet run
+```
+
+### Database Migrations
+
+To create a new migration:
+```bash
+cd RestaurantManagement.Server
+dotnet ef migrations add MigrationName
+```
+
+To apply migrations:
+```bash
+dotnet ef database update
+```
 
 ## Contributing
 
-Contributions are welcome! Please follow standard fork-and-pull-request workflow. Ensure code adheres to existing project style and includes relevant tests if applicable.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+Your Name - your.email@example.com
+
+Project Link: [https://github.com/yourusername/RestaurantManagement](https://github.com/yourusername/RestaurantManagement)
