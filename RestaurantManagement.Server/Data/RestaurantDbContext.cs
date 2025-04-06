@@ -51,7 +51,8 @@ public class RestaurantDbContext : IdentityDbContext<User>
                 .HasColumnType("decimal(18,2)");
             
             entity.Property(p => p.Category)
-                .IsRequired();
+                .IsRequired()
+                .HasConversion<string>();
             
             entity.Property(p => p.ImageUrl)
                 .HasMaxLength(500);

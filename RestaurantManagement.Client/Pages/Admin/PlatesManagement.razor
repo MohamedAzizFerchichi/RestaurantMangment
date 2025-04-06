@@ -314,7 +314,13 @@
     private string GetImageUrl(string? imageUrl)
     {
         if (string.IsNullOrEmpty(imageUrl)) return string.Empty;
-        return $"{NavigationManager.BaseUri.TrimEnd('/')}{imageUrl}";
+        
+        // Remove any leading slashes to ensure proper URL construction
+        var cleanUrl = imageUrl.TrimStart('/');
+        
+        // Use the backend URL for images
+        var backendUrl = "http://localhost:5239"; // Replace with your actual backend URL
+        return $"{backendUrl}/{cleanUrl}";
     }
 
     private async Task LoadPlates()
@@ -381,6 +387,13 @@
         {
             _isSaving = true;
             HttpResponseMessage response;
+
+            // Ensure Category is properly set
+            if (!Enum.IsDefined(typeof(PlateType), _currentPlate.Category))
+            {
+                Snackbar.Add("Invalid category selected", Severity.Error);
+                return;
+            }
 
             if (_isEditMode)
             {

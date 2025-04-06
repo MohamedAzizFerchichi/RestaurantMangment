@@ -130,7 +130,9 @@ app.UseStaticFiles(new StaticFileOptions
         // Cache static files for 1 day
         ctx.Context.Response.Headers.Append(
             "Cache-Control", $"public, max-age=86400");
-    }
+    },
+    ServeUnknownFileTypes = true, // Allow serving unknown file types
+    DefaultContentType = "application/octet-stream" // Default content type for unknown files
 });
 
 // Authentication & Authorization

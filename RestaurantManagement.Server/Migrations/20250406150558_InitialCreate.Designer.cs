@@ -12,7 +12,7 @@ using RestaurantManagement.Server.Data;
 namespace RestaurantManagement.Server.Migrations
 {
     [DbContext(typeof(RestaurantDbContext))]
-    [Migration("20250406112241_InitialCreate")]
+    [Migration("20250406150558_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -319,7 +319,9 @@ namespace RestaurantManagement.Server.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -327,10 +329,13 @@ namespace RestaurantManagement.Server.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<string>("ImageUrl")
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -338,7 +343,7 @@ namespace RestaurantManagement.Server.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -433,25 +438,6 @@ namespace RestaurantManagement.Server.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = "1",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "a3196e9b-01b7-41a3-ac26-06b81e36aea6",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "admin@restaurant.com",
-                            EmailConfirmed = false,
-                            FirstName = "Admin",
-                            LastName = "User",
-                            LockoutEnabled = false,
-                            PasswordHash = "$2a$11$HmFwZFnDC4MOcY/9TXmCdeJhx8MHNkQkLTeV.YLWIISRVnsE4gh7G",
-                            PhoneNumberConfirmed = false,
-                            Role = "Admin",
-                            SecurityStamp = "005f0a8c-f3bd-4b2b-8977-adc4515f1679",
-                            TwoFactorEnabled = false
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

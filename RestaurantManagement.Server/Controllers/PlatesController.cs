@@ -5,6 +5,7 @@ using RestaurantManagement.Server.Data;
 using RestaurantManagement.Shared.Models;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using RestaurantManagement.Shared.Enums;
 
 namespace RestaurantManagement.Server.Controllers
 {
@@ -190,24 +191,31 @@ namespace RestaurantManagement.Server.Controllers
                     return BadRequest(new { Errors = errors });
                 }
 
-                // Validate image URL if provided
-                if (!string.IsNullOrEmpty(plate.ImageUrl))
-                {
-                    var imagePath = Path.Combine(_environment.WebRootPath, plate.ImageUrl.TrimStart('/'));
-                    if (!System.IO.File.Exists(imagePath))
-                    {
-                        return BadRequest(new { Error = "The specified image does not exist" });
-                    }
-                }
-
+                // Ensure all required fields are set
+                plate.IsAvailable = true; // Force set to true
                 plate.CreatedAt = DateTime.UtcNow;
                 plate.UpdatedAt = null;
+
+                // Validate Category is a valid enum value
+                if (!Enum.IsDefined(typeof(PlateType), plate.Category))
+                {
+                    _logger.LogWarning("Invalid Category value: {Category}", plate.Category);
+                    return BadRequest(new { Error = "Invalid Category value" });
+                }
+
+                // Log the plate before saving
+                _logger.LogInformation("Plate before saving: {@Plate}", plate);
 
                 _context.Plates.Add(plate);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully created new plate with ID {Id}", plate.Id);
                 return CreatedAtAction(nameof(GetPlate), new { id = plate.Id }, plate);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database error while creating plate");
+                return StatusCode(500, new { Error = "Database error while creating the plate", Details = ex.InnerException?.Message });
             }
             catch (Exception ex)
             {

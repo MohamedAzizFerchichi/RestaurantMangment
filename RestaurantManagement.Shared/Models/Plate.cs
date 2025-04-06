@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using RestaurantManagement.Shared.Enums;
+using System.Text.Json.Serialization;
 
 namespace RestaurantManagement.Shared.Models;
 
@@ -21,8 +22,10 @@ public class Plate
     public string? ImageUrl { get; set; }
 
     [Required]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public PlateType Category { get; set; }
 
+    
     public bool IsAvailable { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
