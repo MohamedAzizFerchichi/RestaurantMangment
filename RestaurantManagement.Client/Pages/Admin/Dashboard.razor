@@ -1,0 +1,164 @@
+@page "/admin/dashboard"
+@using Microsoft.AspNetCore.Components.Authorization
+@using RestaurantManagement.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Admin Dashboard - Restaurant Management</PageTitle>
+
+<AuthorizeView Roles="Admin" Context="authContext">
+    <Authorized Context="authUser">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+            <MudText Typo="Typo.h4" Class="mb-4">Admin Dashboard</MudText>
+
+            <MudGrid>
+                <!-- Summary Cards -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="25" Class="pa-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Total Orders</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" />
+                            </CardHeaderAvatar>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h4">@_totalOrders</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="25" Class="pa-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Total Plates</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.Restaurant" />
+                            </CardHeaderAvatar>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h4">@_totalPlates</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="25" Class="pa-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Total Users</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.People" />
+                            </CardHeaderAvatar>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h4">@_totalUsers</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="25" Class="pa-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Total Revenue</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
+                            </CardHeaderAvatar>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h4">$@_totalRevenue.ToString("N2")</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Recent Orders -->
+            <MudCard Elevation="25" Class="mt-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Recent Orders</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudTable Items="@_recentOrders" Dense="true" Hover="true" Bordered="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Order ID</MudTh>
+                            <MudTh>Customer</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Total</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="orderContext">
+                            <MudTd DataLabel="Order ID">@orderContext.Id</MudTd>
+                            <MudTd DataLabel="Customer">@orderContext.User?.Email</MudTd>
+                            <MudTd DataLabel="Date">@orderContext.OrderDate.ToString("MM/dd/yyyy")</MudTd>
+                            <MudTd DataLabel="Status">
+                                <MudChip Color="@GetStatusColor(orderContext.Status)" Size="Size.Small">@orderContext.Status</MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Total">$@orderContext.TotalAmount.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                             OnClick="@(() => ViewOrderDetails(orderContext.Id))" 
+                                             Color="Color.Primary" 
+                                             Size="Size.Small" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <MudText Typo="Typo.h6" Color="Color.Error" Class="text-center mt-4">You are not authorized to view this page.</MudText>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private int _totalOrders;
+    private int _totalPlates;
+    private int _totalUsers;
+    private decimal _totalRevenue;
+    private List<Order> _recentOrders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // In a real application, you would fetch these from your API
+            _totalOrders = 150;
+            _totalPlates = 45;
+            _totalUsers = 200;
+            _totalRevenue = 12500.50m;
+
+            // Fetch recent orders
+            _recentOrders = await Http.GetFromJsonAsync<List<Order>>("api/orders/recent") ?? new List<Order>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error loading dashboard data: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status.ToLower() switch
+        {
+            "pending" => Color.Warning,
+            "completed" => Color.Success,
+            "cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private void ViewOrderDetails(int orderId)
+    {
+        // Implement order details view
+    }
+} 

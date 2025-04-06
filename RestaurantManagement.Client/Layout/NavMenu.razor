@@ -1,0 +1,23 @@
+﻿﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<MudNavMenu>
+    <AuthorizeView>
+        <Authorized>
+            <AuthorizeView Roles="Admin" Context="AdminAuth">
+                <MudNavLink Href="/admin/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+                <MudNavLink Href="/admin/profile" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
+                <MudNavLink Href="/admin/orders" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ShoppingCart">Order Management</MudNavLink>
+                <MudNavLink Href="/admin/plates" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Restaurant">Plate Management</MudNavLink>
+            </AuthorizeView>
+            <AuthorizeView Roles="Client" Context="ClientAuth">
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+                <MudNavLink Href="/restaurants" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Restaurant">Restaurants</MudNavLink>
+                <MudNavLink Href="/profile" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">Profile</MudNavLink>
+            </AuthorizeView>
+        </Authorized>
+        <NotAuthorized>
+            <MudNavLink Href="/login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
+            <MudNavLink Href="/register" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAdd">Register</MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+</MudNavMenu>

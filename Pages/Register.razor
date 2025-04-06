@@ -1,0 +1,138 @@
+@page "/register"
+@using RestaurantManagement.Models
+@using RestaurantManagement.Services
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="25" Class="pa-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Class="text-center">Register</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudTextField T="string" 
+                                    Label="First Name" 
+                                    @bind-Value="registerRequest.FirstName" 
+                                    Required="true" 
+                                    RequiredError="First name is required!"
+                                    Validation="@(new Func<string, string>(ValidateFirstName))"/>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudTextField T="string" 
+                                    Label="Last Name" 
+                                    @bind-Value="registerRequest.LastName" 
+                                    Required="true" 
+                                    RequiredError="Last name is required!"
+                                    Validation="@(new Func<string, string>(ValidateLastName))"/>
+                    </MudItem>
+                </MudGrid>
+
+                <MudTextField T="string" 
+                            Label="Email" 
+                            @bind-Value="registerRequest.Email" 
+                            Required="true" 
+                            RequiredError="Email is required!"
+                            InputType="InputType.Email"/>
+
+                <MudTextField T="string" 
+                            Label="Password" 
+                            @bind-Value="registerRequest.Password" 
+                            Required="true" 
+                            RequiredError="Password is required!"
+                            InputType="InputType.Password"
+                            Validation="@(new Func<string, string>(ValidatePassword))"/>
+
+                <MudTextField T="string" 
+                            Label="Confirm Password" 
+                            @bind-Value="registerRequest.ConfirmPassword" 
+                            Required="true" 
+                            RequiredError="Password confirmation is required!"
+                            InputType="InputType.Password"
+                            Validation="@(new Func<string, string>(ValidateConfirmPassword))"/>
+
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          Class="mt-4" 
+                          FullWidth="true" 
+                          OnClick="ProcessRegistration" 
+                          Disabled="@(!success)">
+                    Register
+                </MudButton>
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Link="/login" 
+                      Variant="Variant.Text" 
+                      Color="Color.Secondary" 
+                      Class="ml-auto">
+                Already have an account? Login
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private bool success;
+    private RegisterRequest registerRequest = new();
+
+    private string ValidateFirstName(string arg)
+    {
+        if (string.IsNullOrEmpty(arg))
+            return "First name is required!";
+        if (arg.Length < 2)
+            return "First name must be at least 2 characters!";
+        return null;
+    }
+
+    private string ValidateLastName(string arg)
+    {
+        if (string.IsNullOrEmpty(arg))
+            return "Last name is required!";
+        if (arg.Length < 2)
+            return "Last name must be at least 2 characters!";
+        return null;
+    }
+
+    private string ValidatePassword(string arg)
+    {
+        if (string.IsNullOrEmpty(arg))
+            return "Password is required!";
+        if (arg.Length < 6)
+            return "Password must be at least 6 characters!";
+        return null;
+    }
+
+    private string ValidateConfirmPassword(string arg)
+    {
+        if (string.IsNullOrEmpty(arg))
+            return "Password confirmation is required!";
+        if (arg != registerRequest.Password)
+            return "Passwords do not match!";
+        return null;
+    }
+
+    private async Task ProcessRegistration()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            var result = await AuthService.RegisterAsync(registerRequest);
+            if (result.Success)
+            {
+                Snackbar.Add("Registration successful!", Severity.Success);
+                NavigationManager.NavigateTo("/client");
+            }
+            else
+            {
+                Snackbar.Add(result.Message, Severity.Error);
+            }
+        }
+    }
+} 

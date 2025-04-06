@@ -1,0 +1,60 @@
+@page "/register"
+@using RestaurantManagement.Shared.Models.Auth
+@using RestaurantManagement.Client.Auth
+@inject RestaurantManagement.Client.Auth.IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="25" Class="pa-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Class="text-center">Register</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudTextField T="string" Label="First Name" @bind-Value="registerRequest.FirstName" Required="true" RequiredError="First name is required!" />
+                <MudTextField T="string" Label="Last Name" @bind-Value="registerRequest.LastName" Required="true" RequiredError="Last name is required!" />
+                <MudTextField T="string" Label="Email" @bind-Value="registerRequest.Email" Required="true" RequiredError="Email is required!" InputType="InputType.Email" />
+                <MudTextField T="string" Label="Password" @bind-Value="registerRequest.Password" Required="true" RequiredError="Password is required!" InputType="InputType.Password" />
+                <MudTextField T="string" Label="Confirm Password" @bind-Value="registerRequest.ConfirmPassword" Required="true" RequiredError="Password confirmation is required!" InputType="InputType.Password" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="ProcessRegistration" Disabled="@(!success)">Register</MudButton>
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions Class="d-flex justify-center">
+            <MudLink Href="/login">Already have an account? Login here</MudLink>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private bool success;
+    private RegisterRequest registerRequest = new();
+
+    private async Task ProcessRegistration()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            try
+            {
+                var result = await AuthService.RegisterAsync(registerRequest);
+                if (result.Success) // Check the Success property
+                {
+                    Snackbar.Add("Registration successful! Please login.", Severity.Success);
+                    NavigationManager.NavigateTo("/login");
+                }
+                else
+                {
+                    Snackbar.Add(result.Message ?? "Registration failed. Please try again.", Severity.Error); // Use message from response
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("An error occurred during registration", Severity.Error);
+            }
+        }
+    }
+}

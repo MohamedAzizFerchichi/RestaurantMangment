@@ -1,0 +1,74 @@
+@page "/admin/login"
+@using RestaurantManagement.Models
+@using RestaurantManagement.Services
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="25" Class="pa-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Class="text-center">Admin Login</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudTextField T="string" 
+                            Label="Email" 
+                            @bind-Value="loginRequest.Email" 
+                            Required="true" 
+                            RequiredError="Email is required!"
+                            InputType="InputType.Email"/>
+                
+                <MudTextField T="string" 
+                            Label="Password" 
+                            @bind-Value="loginRequest.Password" 
+                            Required="true" 
+                            RequiredError="Password is required!"
+                            InputType="InputType.Password"/>
+                
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          Class="mt-4" 
+                          FullWidth="true" 
+                          OnClick="ProcessLogin" 
+                          Disabled="@(!success)">
+                    Login as Admin
+                </MudButton>
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Link="/login" 
+                      Variant="Variant.Text" 
+                      Color="Color.Secondary" 
+                      Class="ml-auto">
+                Back to Client Login
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private bool success;
+    private LoginRequest loginRequest = new();
+
+    private async Task ProcessLogin()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            var result = await AuthService.LoginAsync(loginRequest);
+            if (result.Success && result.Role?.ToLower() == "admin")
+            {
+                Snackbar.Add("Admin login successful!", Severity.Success);
+                NavigationManager.NavigateTo("/admin");
+            }
+            else
+            {
+                Snackbar.Add("Invalid admin credentials", Severity.Error);
+            }
+        }
+    }
+} 

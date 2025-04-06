@@ -1,0 +1,146 @@
+@page "/profile"
+@using Microsoft.AspNetCore.Components.Authorization
+@using RestaurantManagement.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Profile - Restaurant Management</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+            <MudCard Elevation="25" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5">Profile Information</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderAvatar>
+                        <MudIcon Icon="@Icons.Material.Filled.Person" />
+                    </CardHeaderAvatar>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (_loading)
+                    {
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    }
+                    else
+                    {
+                        <MudForm @ref="form" @bind-IsValid="@success">
+                            <MudTextField T="string" Label="First Name" @bind-Value="user.FirstName" Required="true" RequiredError="First name is required!" />
+                            <MudTextField T="string" Label="Last Name" @bind-Value="user.LastName" Required="true" RequiredError="Last name is required!" />
+                            <MudTextField T="string" Label="Email" @bind-Value="user.Email" Required="true" RequiredError="Email is required!" InputType="InputType.Email" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="UpdateProfile" Disabled="@(!success)">Update Profile</MudButton>
+                        </MudForm>
+                    }
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Elevation="25" Class="pa-4 mt-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5">Change Password</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderAvatar>
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                    </CardHeaderAvatar>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudForm @ref="passwordForm" @bind-IsValid="@passwordSuccess">
+                        <MudTextField T="string" Label="Current Password" @bind-Value="passwordChange.CurrentPassword" Required="true" RequiredError="Current password is required!" InputType="InputType.Password" />
+                        <MudTextField T="string" Label="New Password" @bind-Value="passwordChange.NewPassword" Required="true" RequiredError="New password is required!" InputType="InputType.Password" />
+                        <MudTextField T="string" Label="Confirm New Password" @bind-Value="passwordChange.ConfirmNewPassword" Required="true" RequiredError="Password confirmation is required!" InputType="InputType.Password" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="ChangePassword" Disabled="@(!passwordSuccess)">Change Password</MudButton>
+                    </MudForm>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+            <MudAlert Severity="Severity.Warning">
+                Please log in to view your profile.
+            </MudAlert>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private MudForm form;
+    private MudForm passwordForm;
+    private bool success;
+    private bool passwordSuccess;
+    private bool _loading = true;
+    private User user = new();
+    private PasswordChangeRequest passwordChange = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserProfile();
+    }
+
+    private async Task LoadUserProfile()
+    {
+        try
+        {
+            user = await Http.GetFromJsonAsync<User>("api/user/profile") ?? new User();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error loading profile", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task UpdateProfile()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            try
+            {
+                var response = await Http.PutAsJsonAsync("api/user/profile", user);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Profile updated successfully", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add("Error updating profile", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Error updating profile", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        await passwordForm.Validate();
+        if (passwordForm.IsValid)
+        {
+            try
+            {
+                var response = await Http.PostAsJsonAsync("api/user/change-password", passwordChange);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Password changed successfully", Severity.Success);
+                    passwordChange = new PasswordChangeRequest();
+                    passwordForm.Reset();
+                }
+                else
+                {
+                    Snackbar.Add("Error changing password", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Error changing password", Severity.Error);
+            }
+        }
+    }
+} 

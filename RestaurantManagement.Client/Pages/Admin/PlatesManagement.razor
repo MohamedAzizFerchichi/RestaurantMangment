@@ -1,0 +1,566 @@
+@page "/admin/plates"
+@using Microsoft.AspNetCore.Components.Authorization
+@using RestaurantManagement.Shared.Models
+@using RestaurantManagement.Shared.Enums
+@using System.IO
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Plates Management - Restaurant Management</PageTitle>
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+            <MudPaper Elevation="0" Class="d-flex justify-space-between align-center mb-4">
+                <MudText Typo="Typo.h4">Plates Management</MudText>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          OnClick="OpenAddPlateDialog" 
+                          StartIcon="@Icons.Material.Filled.Add">
+                    Add New Plate
+                </MudButton>
+            </MudPaper>
+
+            <MudTable Items="@_plates" 
+                     Dense="true" 
+                     Hover="true" 
+                     Bordered="true" 
+                     Striped="true"
+                     Loading="@_isLoading"
+                     LoadingProgressColor="Color.Primary">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh>Price</MudTh>
+                    <MudTh>Category</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="plateContext">
+                    <MudTd DataLabel="Name">
+                        <div class="d-flex align-center">
+                            @if (!string.IsNullOrEmpty(plateContext.ImageUrl))
+                            {
+                                <MudImage Src="@GetImageUrl(plateContext.ImageUrl)" 
+                                         Alt="@plateContext.Name"
+                                         Width="40" 
+                                         Height="40" 
+                                         ObjectFit="ObjectFit.Cover"
+                                         Class="rounded-lg mr-2" 
+                                         ErrorText="Failed to load image"/>
+                            }
+                            @plateContext.Name
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Description">@plateContext.Description</MudTd>
+                    <MudTd DataLabel="Price">$@plateContext.Price.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Category">@plateContext.Category.ToString().Replace("_", " ")</MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip Color="@(plateContext.IsAvailable ? Color.Success : Color.Error)" 
+                                Size="Size.Small">
+                            @(plateContext.IsAvailable ? "Available" : "Unavailable")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                         OnClick="@(() => OpenEditPlateDialog(plateContext))" 
+                                         Color="Color.Primary" 
+                                         Size="Size.Small" 
+                                         Class="mr-2" />
+                        </MudTooltip>
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                         OnClick="@(() => DeletePlate(plateContext.Id))" 
+                                         Color="Color.Error" 
+                                         Size="Size.Small" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Align="Align.Center">No plates found</MudText>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <MudText Align="Align.Center">Loading plates...</MudText>
+                </LoadingContent>
+            </MudTable>
+        </MudContainer>
+
+        <!-- Add/Edit Plate Dialog -->
+        <MudDialog @bind-IsVisible="_dialogVisible" 
+                  Options="dialogOptions">
+            <TitleContent>
+                <MudText Typo="Typo.h6">@(_isEditMode ? "Edit Plate" : "Add New Plate")</MudText>
+            </TitleContent>
+            <DialogContent>
+                <MudContainer Style="max-height: 70vh; overflow-y: auto;">
+                    <MudForm @ref="_form" Model="@_currentPlate">
+                        <div class="d-flex flex-column gap-4">
+                            <div class="d-flex gap-4">
+                                <MudTextField T="string"
+                                            @bind-Value="_currentPlate.Name"
+                                            Label="Name"
+                                            Required="true"
+                                            RequiredError="Name is required"
+                                            MaxLength="100"
+                                            Counter="100"
+                                            Immediate="true"
+                                            Validation="@(new Func<string, IEnumerable<string>>(ValidateName))" />
+                                
+                                <MudNumericField T="decimal"
+                                               @bind-Value="_currentPlate.Price"
+                                               Label="Price"
+                                               Required="true"
+                                               RequiredError="Price is required"
+                                               Min="0.01M"
+                                               Format="N2"
+                                               AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                                               Adornment="Adornment.Start" />
+                            </div>
+
+                            <MudTextField T="string"
+                                        @bind-Value="_currentPlate.Description"
+                                        Label="Description"
+                                        Required="true"
+                                        RequiredError="Description is required"
+                                        MaxLength="500"
+                                        Counter="500"
+                                        Lines="3" />
+
+                            <div class="d-flex gap-4">
+                                <MudSelect T="PlateType"
+                                         @bind-Value="_currentPlate.Category"
+                                         Label="Category"
+                                         Required="true"
+                                         RequiredError="Category is required">
+                                    @foreach (PlateType category in Enum.GetValues(typeof(PlateType)))
+                                    {
+                                        <MudSelectItem Value="@category">@category.ToString().Replace("_", " ")</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </div>
+
+                            <MudPaper Class="pa-4" Elevation="0">
+                                <div class="d-flex flex-column gap-4">
+                                    <div class="d-flex justify-center">
+                                        @if (!string.IsNullOrEmpty(_currentPlate.ImageUrl))
+                                        {
+                                            <MudImage Src="@GetImageUrl(_currentPlate.ImageUrl)" 
+                                                     Alt="Plate image" 
+                                                     Width="200" 
+                                                     Height="200" 
+                                                     ObjectFit="ObjectFit.Cover"
+                                                     Class="rounded-lg"
+                                                     ErrorText="Failed to load image" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" 
+                                                    Size="Size.Large" 
+                                                    Class="mud-neutral-text" />
+                                        }
+                                    </div>
+                                    
+                                    <InputFile id="fileInput" 
+                                              OnChange="OnFileSelected" 
+                                              hidden 
+                                              accept=".jpg,.jpeg,.png" />
+                                              
+                                    <div class="d-flex justify-center">
+                                        <MudButton HtmlTag="label"
+                                                  Variant="Variant.Filled"
+                                                  Color="Color.Primary"
+                                                  StartIcon="@Icons.Material.Filled.Upload"
+                                                  for="fileInput"
+                                                  Disabled="@_isUploading">
+                                            @if (_isUploading)
+                                            {
+                                                <MudProgressCircular Class="ms-n1" 
+                                                                   Size="Size.Small" 
+                                                                   Indeterminate="true" />
+                                                <MudText Class="ms-2">Uploading</MudText>
+                                            }
+                                            else
+                                            {
+                                                @(_currentPlate.ImageUrl == null ? "Upload Image" : "Change Image")
+                                            }
+                                        </MudButton>
+                                        @if (!string.IsNullOrEmpty(_currentPlate.ImageUrl))
+                                        {
+                                            <MudButton OnClick="RemoveImage"
+                                                      Color="Color.Error"
+                                                      StartIcon="@Icons.Material.Filled.Delete"
+                                                      Class="ml-2">
+                                                Remove
+                                            </MudButton>
+                                        }
+                                    </div>
+                                </div>
+                            </MudPaper>
+
+                            <MudSwitch @bind-Checked="_currentPlate.IsAvailable"
+                                     Color="Color.Primary"
+                                     Label="Available for ordering" />
+                        </div>
+                    </MudForm>
+                </MudContainer>
+            </DialogContent>
+            <DialogActions>
+                <MudButton Color="Color.Secondary" 
+                          OnClick="CloseDialog">Cancel</MudButton>
+                <MudButton Color="Color.Primary" 
+                          Variant="Variant.Filled" 
+                          OnClick="SavePlate" 
+                          Disabled="@(_isSaving || _isUploading)">
+                    @if (_isSaving)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Saving</MudText>
+                    }
+                    else
+                    {
+                        @(_isEditMode ? "Update" : "Save")
+                    }
+                </MudButton>
+            </DialogActions>
+        </MudDialog>
+
+        <!-- Delete Confirmation Dialog -->
+        <MudDialog @bind-IsVisible="_deleteDialogVisible" 
+                  Options="new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, CloseButton = true, CloseOnEscapeKey = true }">
+            <TitleContent>
+                <MudText Typo="Typo.h6">Delete Plate</MudText>
+            </TitleContent>
+            <DialogContent>
+                <MudText>Are you sure you want to delete this plate? This action cannot be undone.</MudText>
+            </DialogContent>
+            <DialogActions>
+                <MudButton Color="Color.Secondary" 
+                          OnClick="CloseDeleteDialog">Cancel</MudButton>
+                <MudButton Color="Color.Error" 
+                          Variant="Variant.Filled" 
+                          OnClick="ConfirmDelete"
+                          Disabled="@_isDeleting">
+                    @if (_isDeleting)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Deleting</MudText>
+                    }
+                    else
+                    {
+                        @("Delete")
+                    }
+                </MudButton>
+            </DialogActions>
+        </MudDialog>
+    </Authorized>
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                You are not authorized to access this page. Please log in as an administrator.
+            </MudAlert>
+            <MudButton Color="Color.Primary" 
+                      Variant="Variant.Filled" 
+                      Class="mt-4"
+                      OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                Go to Login
+            </MudButton>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<Plate> _plates = new();
+    private Plate _currentPlate = new();
+    private bool _dialogVisible;
+    private bool _deleteDialogVisible;
+    private int _plateToDeleteId;
+    private bool _isEditMode;
+    private bool _isLoading;
+    private bool _isSaving;
+    private bool _isDeleting;
+    private bool _isUploading;
+    private const int MaxAllowedSize = 5 * 1024 * 1024; // 5MB
+    private const string ImagesPath = "wwwroot/images/plates";
+    private MudForm _form = null!;
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseButton = true,
+        CloseOnEscapeKey = true,
+        DisableBackdropClick = false
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true && user.IsInRole("Admin"))
+        {
+            await LoadPlates();
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/login", true);
+        }
+    }
+
+    private string GetImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl)) return string.Empty;
+        return $"{NavigationManager.BaseUri.TrimEnd('/')}{imageUrl}";
+    }
+
+    private async Task LoadPlates()
+    {
+        try
+        {
+            _isLoading = true;
+            _plates = await Http.GetFromJsonAsync<List<Plate>>("api/plates") ?? new List<Plate>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error loading plates: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenAddPlateDialog()
+    {
+        _currentPlate = new Plate { IsAvailable = true };
+        _isEditMode = false;
+        _dialogVisible = true;
+    }
+
+    private void OpenEditPlateDialog(Plate plate)
+    {
+        _currentPlate = new Plate
+        {
+            Id = plate.Id,
+            Name = plate.Name,
+            Description = plate.Description,
+            Price = plate.Price,
+            Category = plate.Category,
+            IsAvailable = plate.IsAvailable,
+            ImageUrl = plate.ImageUrl
+        };
+        _isEditMode = true;
+        _dialogVisible = true;
+    }
+
+    private void CloseDialog()
+    {
+        _dialogVisible = false;
+        _currentPlate = new Plate();
+        _form?.Reset();
+    }
+
+    private IEnumerable<string> ValidateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            yield return "Name is required";
+        else if (name.Length < 2)
+            yield return "Name must be at least 2 characters";
+    }
+
+    private async Task SavePlate()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            _isSaving = true;
+            HttpResponseMessage response;
+
+            if (_isEditMode)
+            {
+                response = await Http.PutAsJsonAsync($"api/plates/{_currentPlate.Id}", _currentPlate);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/plates", _currentPlate);
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var savedPlate = await response.Content.ReadFromJsonAsync<Plate>();
+                if (savedPlate != null)
+                {
+                    _currentPlate.Id = savedPlate.Id; // Update with the server-assigned ID
+                }
+
+                Snackbar.Add($"Plate {(_isEditMode ? "updated" : "added")} successfully!", Severity.Success);
+                await LoadPlates();
+                CloseDialog();
+            }
+            else
+            {
+                var errorMessage = string.IsNullOrEmpty(responseContent) 
+                    ? response.ReasonPhrase 
+                    : responseContent;
+                Snackbar.Add($"Error {(_isEditMode ? "updating" : "adding")} plate: {errorMessage}", Severity.Error);
+                Console.WriteLine($"Server Error: {errorMessage}"); // For debugging
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error {(_isEditMode ? "updating" : "adding")} plate: {ex.Message}", Severity.Error);
+            Console.WriteLine($"Exception: {ex}"); // For debugging
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void DeletePlate(int plateId)
+    {
+        _plateToDeleteId = plateId;
+        _deleteDialogVisible = true;
+    }
+
+    private void CloseDeleteDialog()
+    {
+        _deleteDialogVisible = false;
+        _plateToDeleteId = 0;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        try
+        {
+            _isDeleting = true;
+            var response = await Http.DeleteAsync($"api/plates/{_plateToDeleteId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Plate deleted successfully!", Severity.Success);
+                await LoadPlates();
+                CloseDeleteDialog();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error deleting plate: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting plate: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null)
+            {
+                Snackbar.Add("No file selected", Severity.Warning);
+                return;
+            }
+
+            if (file.Size > MaxAllowedSize)
+            {
+                Snackbar.Add("File size must be less than 5MB", Severity.Warning);
+                return;
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
+            var fileExtension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                Snackbar.Add("Only .jpg, .jpeg and .png files are allowed", Severity.Warning);
+                return;
+            }
+
+            _isUploading = true;
+            StateHasChanged();
+
+            try
+            {
+                // Create form data
+                using var content = new MultipartFormDataContent();
+                using var fileStream = file.OpenReadStream(MaxAllowedSize);
+                using var streamContent = new StreamContent(fileStream);
+                content.Add(streamContent, "file", file.Name);
+
+                // Upload the file
+                var response = await Http.PostAsync("api/plates/upload", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ImageUploadResult>();
+                    if (result != null)
+                    {
+                        _currentPlate.ImageUrl = result.Path;
+                        Snackbar.Add("Image uploaded successfully", Severity.Success);
+                    }
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error uploading image: {error}", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error uploading image: {ex.Message}", Severity.Error);
+                Console.WriteLine($"Image upload error: {ex}"); // For debugging
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error handling file: {ex.Message}", Severity.Error);
+            Console.WriteLine($"File handling error: {ex}"); // For debugging
+        }
+        finally
+        {
+            _isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private class ImageUploadResult
+    {
+        public string Path { get; set; } = string.Empty;
+    }
+
+    private void RemoveImage()
+    {
+        if (!string.IsNullOrEmpty(_currentPlate.ImageUrl))
+        {
+            try
+            {
+                var filePath = Path.Combine("wwwroot", _currentPlate.ImageUrl.TrimStart('/'));
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error removing image: {ex.Message}", Severity.Error);
+            }
+        }
+        _currentPlate.ImageUrl = null;
+        StateHasChanged();
+    }
+}

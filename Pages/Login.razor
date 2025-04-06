@@ -1,0 +1,75 @@
+@page "/login"
+@using RestaurantManagement.Models
+@using RestaurantManagement.Services
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="25" Class="pa-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Class="text-center">Login</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudTextField T="string" 
+                            Label="Email" 
+                            @bind-Value="loginRequest.Email" 
+                            Required="true" 
+                            RequiredError="Email is required!"
+                            InputType="InputType.Email"/>
+                
+                <MudTextField T="string" 
+                            Label="Password" 
+                            @bind-Value="loginRequest.Password" 
+                            Required="true" 
+                            RequiredError="Password is required!"
+                            InputType="InputType.Password"/>
+                
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          Class="mt-4" 
+                          FullWidth="true" 
+                          OnClick="ProcessLogin" 
+                          Disabled="@(!success)">
+                    Login
+                </MudButton>
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Link="/register" 
+                      Variant="Variant.Text" 
+                      Color="Color.Secondary" 
+                      Class="ml-auto">
+                Don't have an account? Register
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private bool success;
+    private LoginRequest loginRequest = new();
+
+    private async Task ProcessLogin()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            var result = await AuthService.LoginAsync(loginRequest);
+            if (result.Success)
+            {
+                Snackbar.Add("Login successful!", Severity.Success);
+                var role = await AuthService.GetUserRoleAsync();
+                NavigationManager.NavigateTo(role?.ToLower() == "admin" ? "/admin" : "/client");
+            }
+            else
+            {
+                Snackbar.Add(result.Message, Severity.Error);
+            }
+        }
+    }
+} 

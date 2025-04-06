@@ -1,0 +1,209 @@
+@page "/admin-dashboard"
+@using RestaurantManagement.Client.Services
+@using RestaurantManagement.Shared.Models
+@using MudBlazor
+@inject PlateService PlateService
+@inject OrderService OrderService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Admin Dashboard</MudText>
+
+    <MudTabs>
+        <MudTab Text="Plates Management">
+            <MudContainer>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAddPlateDialog" Class="mb-4">
+                    Add New Plate
+                </MudButton>
+
+                <MudGrid>
+                    @foreach (var plate in plates)
+                    {
+                        <MudItem xs="12" sm="6" md="4" lg="3">
+                            <MudCard Elevation="25" Class="h-100">
+                                <MudCardContent>
+                                    @if (!string.IsNullOrEmpty(plate.ImageUrl))
+                                    {
+                                        <MudImage Src="@plate.ImageUrl" Alt="@plate.Name" Height="200" ObjectFit="ObjectFit.Cover" />
+                                    }
+                                    <MudText Typo="Typo.h6" Class="mt-2">@plate.Name</MudText>
+                                    <MudText Typo="Typo.body2" Class="mt-1">@plate.Description</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mt-2">$@plate.Price.ToString("F2")</MudText>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenEditPlateDialog(plate))">
+                                        Edit
+                                    </MudButton>
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => DeletePlate(plate))">
+                                        Delete
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudContainer>
+        </MudTab>
+
+        <MudTab Text="Orders Management">
+            <MudContainer>
+                <MudTable Items="@orders" Dense="true" Hover="true" Bordered="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Order ID</MudTh>
+                        <MudTh>User ID</MudTh>
+                        <MudTh>Plate</MudTh>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Order ID">@context.Id</MudTd>
+                        <MudTd DataLabel="Client Name">@context.UserId</MudTd>
+                        <MudTd DataLabel="Plate">
+                            @if (context.OrderItems != null && context.OrderItems.Any())
+                            {
+                                @string.Join(", ", context.OrderItems.Select(oi => $"{oi.Plate.Name} (x{oi.Quantity})"))
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Date">@context.OrderDate.ToString("g")</MudTd>
+                        <MudTd DataLabel="Status">@context.Status</MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteOrder(context))">
+                                Delete
+                            </MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudContainer>
+        </MudTab>
+    </MudTabs>
+</MudContainer>
+
+<MudDialog @bind-IsVisible="@isAddPlateDialogVisible" Title="Add New Plate">
+    <MudForm @ref="addPlateForm" @bind-IsValid="@isValid" @bind-Errors="@errors">
+        <MudTextField @bind-Value="@newPlate.Name" Label="Name" Required="true" />
+        <MudTextField @bind-Value="@newPlate.Description" Label="Description" Required="true" />
+        <MudNumericField @bind-Value="@newPlate.Price" Label="Price" Required="true" />
+        <MudFileUpload T="IBrowserFile" Label="Plate Image" OnChange="@OnFileUpload" />
+    </MudForm>
+    <MudDialogActions>
+        <MudButton Color="Color.Primary" OnClick="AddPlate">Add</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="@(() => isAddPlateDialogVisible = false)">Cancel</MudButton>
+    </MudDialogActions>
+</MudDialog>
+
+<MudDialog @bind-IsVisible="@isEditPlateDialogVisible" Title="Edit Plate">
+    <MudForm @ref="editPlateForm" @bind-IsValid="@isValid" @bind-Errors="@errors">
+        <MudTextField @bind-Value="@selectedPlate.Name" Label="Name" Required="true" />
+        <MudTextField @bind-Value="@selectedPlate.Description" Label="Description" Required="true" />
+        <MudNumericField @bind-Value="@selectedPlate.Price" Label="Price" Required="true" />
+        <MudFileUpload T="IBrowserFile" Label="Plate Image" OnChange="@OnFileUpload" />
+    </MudForm>
+    <MudDialogActions>
+        <MudButton Color="Color.Primary" OnClick="UpdatePlate">Update</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="@(() => isEditPlateDialogVisible = false)">Cancel</MudButton>
+    </MudDialogActions>
+</MudDialog>
+
+@code {
+    private List<Plate> plates = new();
+    private List<Order> orders = new();
+    private bool isAddPlateDialogVisible;
+    private bool isEditPlateDialogVisible;
+    private Plate newPlate = new();
+    private Plate selectedPlate = new();
+    private MudForm addPlateForm;
+    private MudForm editPlateForm;
+    private bool isValid;
+    private string[] errors;
+    private IBrowserFile selectedFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        plates = await PlateService.GetPlatesAsync();
+        orders = await OrderService.GetOrdersAsync();
+    }
+
+    private void OpenAddPlateDialog()
+    {
+        newPlate = new Plate();
+        isAddPlateDialogVisible = true;
+    }
+
+    private void OpenEditPlateDialog(Plate plate)
+    {
+        selectedPlate = plate;
+        isEditPlateDialogVisible = true;
+    }
+
+    private async Task AddPlate()
+    {
+        await addPlateForm.Validate();
+        if (isValid)
+        {
+            if (selectedFile != null)
+            {
+                var content = new MultipartFormDataContent();
+                var stream = selectedFile.OpenReadStream(maxAllowedSize: 10485760);
+                content.Add(new StreamContent(stream), "file", selectedFile.Name);
+                newPlate.ImageUrl = await PlateService.UploadPlateImageAsync(content);
+            }
+
+            await PlateService.CreatePlateAsync(newPlate);
+            await LoadData();
+            isAddPlateDialogVisible = false;
+            Snackbar.Add("Plate added successfully!", Severity.Success);
+        }
+    }
+
+    private async Task UpdatePlate()
+    {
+        await editPlateForm.Validate();
+        if (isValid)
+        {
+            if (selectedFile != null)
+            {
+                var content = new MultipartFormDataContent();
+                var stream = selectedFile.OpenReadStream(maxAllowedSize: 10485760);
+                content.Add(new StreamContent(stream), "file", selectedFile.Name);
+                selectedPlate.ImageUrl = await PlateService.UploadPlateImageAsync(content);
+            }
+
+            await PlateService.UpdatePlateAsync(selectedPlate.Id, selectedPlate);
+            await LoadData();
+            isEditPlateDialogVisible = false;
+            Snackbar.Add("Plate updated successfully!", Severity.Success);
+        }
+    }
+
+    private async Task DeletePlate(Plate plate)
+    {
+        await PlateService.DeletePlateAsync(plate.Id);
+        await LoadData();
+        Snackbar.Add("Plate deleted successfully!", Severity.Success);
+    }
+
+    private async Task UpdateOrderStatus(int orderId, OrderStatus status)
+    {
+        await OrderService.UpdateOrderStatusAsync(orderId, status);
+        await LoadData();
+        Snackbar.Add("Order status updated successfully!", Severity.Success);
+    }
+
+    private async Task DeleteOrder(Order order)
+    {
+        await OrderService.DeleteOrderAsync(order.Id);
+        await LoadData();
+        Snackbar.Add("Order deleted successfully!", Severity.Success);
+    }
+
+    private void OnFileUpload(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+}

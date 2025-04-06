@@ -1,0 +1,76 @@
+@using RestaurantManagement.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudTextField T="string" Label="Name" @bind-Value="restaurant.Name" Required="true" RequiredError="Name is required!" />
+            <MudTextField T="string" Label="Description" @bind-Value="restaurant.Description" Required="true" RequiredError="Description is required!" Lines="3" Class="mt-3" />
+            <MudTextField T="string" Label="Address" @bind-Value="restaurant.Address" Required="true" RequiredError="Address is required!" Class="mt-3" />
+            <MudTextField T="string" Label="Phone Number" @bind-Value="restaurant.PhoneNumber" Required="true" RequiredError="Phone number is required!" Class="mt-3" />
+            <MudTextField T="string" Label="Email" @bind-Value="restaurant.Email" InputType="InputType.Email" Class="mt-3" />
+            <MudTextField T="string" Label="Website" @bind-Value="restaurant.Website" Class="mt-3" />
+            <MudTextField T="string" Label="Opening Hours" @bind-Value="restaurant.OpeningHours" Class="mt-3" />
+            <MudTextField T="string" Label="Cuisine Type" @bind-Value="restaurant.CuisineType" Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@(!success)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Restaurant Restaurant { get; set; } = new();
+
+    private MudForm form;
+    private bool success;
+    private Restaurant restaurant = new();
+
+    protected override void OnInitialized()
+    {
+        restaurant = Restaurant;
+    }
+
+    private async Task Submit()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            try
+            {
+                HttpResponseMessage response;
+                if (restaurant.Id == 0)
+                {
+                    response = await Http.PostAsJsonAsync("api/restaurant", restaurant);
+                }
+                else
+                {
+                    response = await Http.PutAsJsonAsync($"api/restaurant/{restaurant.Id}", restaurant);
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Restaurant saved successfully", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add(error, Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Error saving restaurant", Severity.Error);
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+} 

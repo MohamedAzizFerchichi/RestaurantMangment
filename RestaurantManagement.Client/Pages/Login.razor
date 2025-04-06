@@ -1,0 +1,57 @@
+@page "/login"
+@using RestaurantManagement.Shared.Models.Auth
+@using RestaurantManagement.Client.Auth
+@inject RestaurantManagement.Client.Auth.IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="25" Class="pa-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Class="text-center">Login</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudTextField T="string" Label="Email" @bind-Value="loginRequest.Email" Required="true" RequiredError="Email is required!" InputType="InputType.Email" />
+                <MudTextField T="string" Label="Password" @bind-Value="loginRequest.Password" Required="true" RequiredError="Password is required!" InputType="InputType.Password" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="ProcessLogin" Disabled="@(!success)">Login</MudButton>
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions Class="d-flex justify-center">
+            <MudLink Href="/register">Don't have an account? Register here</MudLink>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private bool success;
+    private LoginRequest loginRequest = new();
+
+    private async Task ProcessLogin()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            try
+            {
+                var result = await AuthService.LoginAsync(loginRequest);
+                if (result)
+                {
+                    Snackbar.Add("Login successful!", Severity.Success);
+                    NavigationManager.NavigateTo("/admin/dashboard");
+                }
+                else
+                {
+                    Snackbar.Add("Invalid email or password", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Error during login: " + ex.Message, Severity.Error);
+            }
+        }
+    }
+}

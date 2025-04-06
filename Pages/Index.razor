@@ -1,0 +1,60 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        @if (authContext.User.IsInRole("Admin"))
+        {
+            <MudText>Redirecting to admin dashboard...</MudText>
+        }
+        else
+        {
+            <MudText>Redirecting to client dashboard...</MudText>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+            <MudCard Elevation="25" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5" Class="text-center">Welcome to Restaurant Management</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Primary" 
+                                      FullWidth="true" 
+                                      Link="/login">
+                                Client Login
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Secondary" 
+                                      FullWidth="true" 
+                                      Link="/admin/login">
+                                Admin Login
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            var role = await AuthService.GetUserRoleAsync();
+            NavigationManager.NavigateTo(role?.ToLower() == "admin" ? "/admin" : "/client");
+        }
+    }
+} 

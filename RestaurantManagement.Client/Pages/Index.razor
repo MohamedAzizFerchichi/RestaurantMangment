@@ -1,0 +1,66 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Home - Restaurant Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-4">Welcome to Restaurant Management</MudText>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudText Typo="Typo.h5" Class="mb-4">Hello, @context.User.Identity?.Name!</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">
+                Welcome to your restaurant management dashboard. Here you can:
+            </MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="25" Class="pa-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Manage Restaurants</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.Restaurant" />
+                            </CardHeaderAvatar>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2">
+                                Add, edit, and manage your restaurant listings. Keep your information up to date.
+                            </MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Link="/restaurants">View Restaurants</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="25" Class="pa-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Profile Settings</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.Person" />
+                            </CardHeaderAvatar>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2">
+                                Update your profile information and manage your account settings.
+                            </MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Link="/profile">View Profile</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        </Authorized>
+        <NotAuthorized>
+            <MudText Typo="Typo.body1" Class="mb-4">
+                Please log in or register to access the restaurant management features.
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Link="/login" Class="mr-4">Login</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Link="/register">Register</MudButton>
+        </NotAuthorized>
+    </AuthorizeView>
+</MudContainer> 

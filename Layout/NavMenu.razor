@@ -1,0 +1,15 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<MudNavMenu>
+    <AuthorizeView Roles="Admin">
+        <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Admin Dashboard</MudNavLink>
+        <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">User Management</MudNavLink>
+        <MudNavLink Href="/admin/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Settings</MudNavLink>
+    </AuthorizeView>
+    
+    <AuthorizeView Roles="Client">
+        <MudNavLink Href="/client" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+        <MudNavLink Href="/client/profile" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">My Profile</MudNavLink>
+        <MudNavLink Href="/client/orders" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ShoppingCart">My Orders</MudNavLink>
+    </AuthorizeView>
+</MudNavMenu>
